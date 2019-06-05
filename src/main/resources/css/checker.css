@@ -1,0 +1,51 @@
+#linesCol {
+    -fx-alignment: CENTER-RIGHT;
+}
+#tabTrue {
+    -fx-alignment: CENTER;
+	-fx-text-fill: white;
+	-fx-background-color: red;
+}
+#tabFalse {
+    -fx-alignment: CENTER;
+    -fx-text-fill: black;
+    -fx-background-color: green;
+}
+#rowTabTrue {
+    -fx-text-fill: white;
+    -fx-background-color: red;
+}
+#rowTabFalse {
+    -fx-text-fill: white;
+    -fx-background-color: green;
+}
+.table-view {
+    -fx-border-color: black;
+}
+.table-row-cell {
+    -fx-border-color: black;
+    -fx-table-cell-border-color:black;
+}
+.table-row-cell:selected {
+    -fx-fill: white;
+    -fx-background-color: blue; 
+}
+.keyword {
+    -fx-fill: #8346F2;
+    -fx-font-weight: bold;
+}
+#mainWindow {
+    -fx-background-color: white;
+    -fx-background-image: url("/img/java.png");
+    -fx-background-position: center center;
+    -fx-background-repeat: no-repeat ;
+    -fx-background-size: 50.0% 50.0% ;
+}
+#topPane {
+    -fx-border-color: black;
+    -fx-border-width: 1.0;
+} 
+#bottomPane {
+    -fx-border-color: black;
+    -fx-border-width: 1.0;
+} 
