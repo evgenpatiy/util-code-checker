@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -109,6 +110,7 @@ public class CodeWorker implements FileVisitor<Path> {
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
     private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")");
     private OSValidator os = new OSValidator();
+    private HashMap<Integer, Long> linesCache = new HashMap<Integer, Long>();
 
     private CodeWorker() {
         locale = new Locale("en", "US");
@@ -143,7 +145,7 @@ public class CodeWorker implements FileVisitor<Path> {
         try {
             return tika.detect(f);
         } catch (IOException e) {
-            e.printStackTrace();
+            handleException(e);
         }
         return null;
     }
@@ -416,12 +418,14 @@ public class CodeWorker implements FileVisitor<Path> {
                 bottomPane.getChildren().add(new Label(permissionsString + " "
                         + getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))));
             } catch (IOException e) {
+                handleException(e);
             }
         }
         bottomPane.getChildren().add(new Label(sizeString + " " + file.toFile().length()));
         bottomPane.getChildren().forEach(node -> FlowPane.setMargin(node, new Insets(10)));
         view.setBottom(bottomPane);
-        stage.setTitle(file.getFileName().toString() + " | " + getFileType(file.toFile()));
+        stage.setTitle(file.getFileName().toString() + "  |  " + getFileType(file.toFile()) + "  |  "
+                + messages.getString("linesSmall") + ": " + linesCache.get(file.toString().hashCode()));
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/img/code.png")));
         stage.setScene(new Scene(view, viewW, viewH));
         stage.show();
@@ -570,6 +574,7 @@ public class CodeWorker implements FileVisitor<Path> {
             tableItem.setTab(hasTabs(file));
             tableItem.setFileName(file.toFile().getCanonicalPath());
             tableItem.setLines(countLines(file));
+            linesCache.put(tableItem.getFileName().hashCode(), tableItem.getLines()); // fill cache for better speed
             fileList.add(tableItem);
             fileCounter++;
             lineCounter += countLines(file);

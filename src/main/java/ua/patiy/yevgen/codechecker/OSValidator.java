@@ -12,13 +12,14 @@ public class OSValidator {
 
     public OSValidator() {
         String osName = System.getProperty("os.name").toLowerCase();
-        if (osName.indexOf("win") >= 0) {
+        if (osName.contains("win")) {
             env = OS.WINDOWS;
-        } else if (osName.indexOf("mac") >= 0) {
+        } else if (osName.contains("mac")) {
             env = OS.MAC;
-        } else if (osName.indexOf("nix") >= 0 || osName.indexOf("nux") >= 0 || osName.indexOf("aix") > 0) {
+        } else if (osName.contains("nix") || osName.contains("nux") || osName.contains("bsd") || osName.contains("irix")
+                || osName.contains("aix")) {
             env = OS.UNIX;
-        } else if (osName.indexOf("sunos") >= 0) {
+        } else if (osName.contains("sunos") || osName.contains("solaris")) {
             env = OS.SOLARIS;
         } else {
             env = null;
