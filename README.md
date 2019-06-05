@@ -4,13 +4,13 @@ Java-written application for simple code check (**TABS** issue) and lines count
 
 ## Environment requirements
 
-Existing [Java 8](https://www.java.com/en/download/) and [MAVEN](https://maven.apache.org/) installation required
+Application tested under Linux and Windows. Existing [Java 8](https://www.java.com/en/download/) and [Maven](https://maven.apache.org/) installation required
 
 ## Installation and usage
 
 * Clone current git repository to local machine
 
-`git clone https://github.com/evgenpatiy/code-checker.git`
+`git clone https://github.com/evgenpatiy/util-code-checker.git`
 
 * Compile source code using command below. 
    
@@ -25,8 +25,8 @@ bottom checkboxes
 
 ![Screenshot](docs/1.png)
 
-* Files list with highlighted items that still have <TAB> characters in code, see tooltip for more detailed file info. Use right mouse button on files marked red to fix it
-directly from application (.old file version would be created as backup), or view your code
+* Files list with highlighted items that still have **'CHARACTER TABULATION' (U+0009)** characters in code, see tooltip for more detailed file info. Use right mouse button to 
+pop-up context menu on files marked red, and fix it directly from application (.old file version will be created as backup), or view your code
 
 ![Screenshot](docs/2.png)
 
