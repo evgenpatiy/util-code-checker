@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -64,6 +65,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
@@ -85,11 +87,12 @@ public class CodeWorker implements FileVisitor<Path> {
     private boolean hasTabsInList;
     private ObservableList<FileData> dataView;
     private BorderPane root = new BorderPane();
+    private FlowPane topPane = new FlowPane();
     private Label filesLabel = new Label();
     private Label linesLabel = new Label();
     private Label filesToCheckLabel = new Label();
     private Button sourceFolderButton = new Button();
-    private Alert alert = new Alert(AlertType.INFORMATION);
+    private Button fixAllButton = new Button();
     private Locale locale;
     private ResourceBundle messages;
     private String contentTypeString;
@@ -110,7 +113,7 @@ public class CodeWorker implements FileVisitor<Path> {
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
     private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")");
     private OSValidator os = new OSValidator();
-    private HashMap<Integer, Long> linesCache = new HashMap<Integer, Long>();
+    private Map<String, Long> linesCache = new HashMap<String, Long>();
 
     private CodeWorker() {
         locale = new Locale("en", "US");
@@ -125,27 +128,19 @@ public class CodeWorker implements FileVisitor<Path> {
     }
 
     private void handleException(Exception e) {
+        Alert alert = new Alert(AlertType.ERROR);
         e.printStackTrace();
-        alert.setAlertType(AlertType.ERROR);
         alert.setTitle(messages.getString("error"));
         alert.setHeaderText(messages.getString("excMessage"));
         alert.setContentText(e.getMessage());
         alert.showAndWait();
     }
 
-    private void alertSuccessMessage(String message) {
-        alert.setTitle(messages.getString("success"));
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
     private String getFileType(File f) {
-        Tika tika = new Tika();
         try {
-            return tika.detect(f);
+            return new Tika().detect(f);
         } catch (IOException e) {
-            handleException(e);
+            e.printStackTrace();
         }
         return null;
     }
@@ -354,6 +349,7 @@ public class CodeWorker implements FileVisitor<Path> {
 
     private void updateView() {
         if (selectedDirectory != null) {
+            linesCache.clear();
             fileCounter = 0;
             lineCounter = 0;
             if (!fileList.isEmpty()) {
@@ -361,6 +357,21 @@ public class CodeWorker implements FileVisitor<Path> {
             }
             processDirectory(selectedDirectory);
             root.setCenter(getTableData());
+            if (hasTabsInList) {
+                fixAllButton.setGraphic(new ImageView(new Image(getClass().getResourceAsStream("/img/warning.png"))));
+                fixAllButton.setOnAction(event -> {
+                    linesCache.forEach((k, v) -> {
+                        System.out.println(k);
+                    });
+                });
+                if (!topPane.getChildren().contains(fixAllButton)) {
+                    topPane.getChildren().add(fixAllButton);
+                }
+            } else {
+                if (topPane.getChildren().contains(fixAllButton)) {
+                    topPane.getChildren().remove(fixAllButton);
+                }
+            }
             filesLabel.setText(messages.getString("totalFiles") + " " + fileCounter);
             linesLabel.setText(messages.getString("totalLines") + " " + lineCounter);
         }
@@ -425,7 +436,7 @@ public class CodeWorker implements FileVisitor<Path> {
         bottomPane.getChildren().forEach(node -> FlowPane.setMargin(node, new Insets(10)));
         view.setBottom(bottomPane);
         stage.setTitle(file.getFileName().toString() + "  |  " + getFileType(file.toFile()) + "  |  "
-                + messages.getString("linesSmall") + ": " + linesCache.get(file.toString().hashCode()));
+                + messages.getString("linesSmall") + ": " + linesCache.get(file.toString()));
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/img/code.png")));
         stage.setScene(new Scene(view, viewW, viewH));
         stage.show();
@@ -443,6 +454,7 @@ public class CodeWorker implements FileVisitor<Path> {
             }
             messages = ResourceBundle.getBundle("properties/messages", locale);
             sourceFolderButton.setText(messages.getString("sources"));
+            fixAllButton.setText(messages.getString("fixAll"));
             filesToCheckLabel.setText(messages.getString("files"));
 
             if (selectedDirectory != null) {
@@ -453,7 +465,6 @@ public class CodeWorker implements FileVisitor<Path> {
             updateView();
         });
 
-        FlowPane topPane = new FlowPane();
         topPane.setId("topPane");
         FlowPane bottomPane = new FlowPane();
         bottomPane.setId("bottomPane");
@@ -465,6 +476,7 @@ public class CodeWorker implements FileVisitor<Path> {
             primaryStage.setTitle(messages.getString("title") + ": " + selectedDirectory);
             updateView();
         });
+        fixAllButton.setText(messages.getString("fixAll"));
         bottomPane.setAlignment(Pos.CENTER);
         filesToCheckLabel.setText(messages.getString("files"));
         bottomPane.getChildren().add(filesToCheckLabel);
@@ -494,6 +506,7 @@ public class CodeWorker implements FileVisitor<Path> {
 
     private void processDirectory(File dir) {
         path = Paths.get(dir.getAbsolutePath());
+        hasTabsInList = false;
         try {
             Files.walkFileTree(path, this);
         } catch (IOException e) {
@@ -512,7 +525,6 @@ public class CodeWorker implements FileVisitor<Path> {
     }
 
     private boolean hasTabs(Path file) {
-        hasTabsInList = false;
         try (InputStream in = new FileInputStream(file.toFile());
                 Reader reader = new InputStreamReader(in);
                 BufferedReader buffer = new BufferedReader(reader)) {
@@ -520,7 +532,6 @@ public class CodeWorker implements FileVisitor<Path> {
             while ((r = buffer.read()) != -1) {
                 if ((char) r == '\t') {
                     buffer.close();
-                    hasTabsInList = true;
                     return true;
                 }
             }
@@ -547,14 +558,11 @@ public class CodeWorker implements FileVisitor<Path> {
                         writeBuffer.write(r);
                     }
                 }
-                alertSuccessMessage(file.getFileName().toString() + " " + messages.getString("fixed"));
             } catch (FileNotFoundException e) {
                 handleException(e);
-            } catch (IOException e) {
-                handleException(e);
             }
-        } catch (IOException e1) {
-            handleException(e1);
+        } catch (IOException e) {
+            handleException(e);
         }
     }
 
@@ -574,7 +582,10 @@ public class CodeWorker implements FileVisitor<Path> {
             tableItem.setTab(hasTabs(file));
             tableItem.setFileName(file.toFile().getCanonicalPath());
             tableItem.setLines(countLines(file));
-            linesCache.put(tableItem.getFileName().hashCode(), tableItem.getLines()); // fill cache for better speed
+            if (tableItem.isTab()) {
+                hasTabsInList = true;
+                linesCache.put(tableItem.getFileName(), tableItem.getLines()); // fill cache for better speed
+            }
             fileList.add(tableItem);
             fileCounter++;
             lineCounter += countLines(file);
