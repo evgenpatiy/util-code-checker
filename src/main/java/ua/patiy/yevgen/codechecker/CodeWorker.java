@@ -109,10 +109,9 @@ public class CodeWorker implements FileVisitor<Path> {
             "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
             "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
             "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void",
-            "volatile", "while" };
+            "volatile", "while", String.valueOf('\u0020'), String.valueOf('\u0009') };
     private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
     private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")");
-    private OSValidator os = new OSValidator();
     private Map<String, Long> linesCache = new HashMap<String, Long>();
 
     private CodeWorker() {
@@ -224,6 +223,7 @@ public class CodeWorker implements FileVisitor<Path> {
 
             result += contentTypeString + " " + getFileType(f) + System.lineSeparator();
             result += modificationTimeString + " " + getFileTime(f) + System.lineSeparator();
+            OSValidator os = new OSValidator();
             if ((os.getEnv() == OS.MAC) || (os.getEnv() == OS.UNIX) || (os.getEnv() == OS.SOLARIS)) {
                 result += ownerString + " " + Files.getOwner(path, LinkOption.NOFOLLOW_LINKS) + System.lineSeparator();
                 result += permissionsString + " "
@@ -422,6 +422,7 @@ public class CodeWorker implements FileVisitor<Path> {
 
         view.setCenter(new StackPane(new VirtualizedScrollPane<CodeArea>(textArea)));
         bottomPane.getChildren().add(new Label(modificationTimeString + " " + getFileTime(file.toFile())));
+        OSValidator os = new OSValidator();
         if ((os.getEnv() == OS.MAC) || (os.getEnv() == OS.UNIX) || (os.getEnv() == OS.SOLARIS)) {
             try {
                 bottomPane.getChildren()
