@@ -7,7 +7,7 @@ import javafx.stage.Stage;
 
 @SuppressWarnings("restriction")
 public class Main extends Application {
-    private static CodeWorker codeWorker = CodeWorker.getInstance();
+    private static CodeChecker codeWorker = CodeChecker.getInstance();
 
     @Override
     public void start(Stage primaryStage) throws Exception {

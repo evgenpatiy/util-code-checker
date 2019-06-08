@@ -1,4 +1,4 @@
-package ua.patiy.yevgen.codechecker;
+package ua.patiy.yevgen.codechecker.workers;
 
 import lombok.Getter;
 import lombok.Setter;

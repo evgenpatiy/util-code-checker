@@ -1,15 +1,12 @@
 package ua.patiy.yevgen.codechecker;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -17,14 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFilePermission;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,11 +24,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.tika.Tika;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
@@ -71,17 +59,20 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
-import ua.patiy.yevgen.codechecker.OSValidator.OS;
+import ua.patiy.yevgen.codechecker.workers.FileData;
+import ua.patiy.yevgen.codechecker.workers.FileWorker;
+import ua.patiy.yevgen.codechecker.workers.OSValidator;
+import ua.patiy.yevgen.codechecker.workers.OSValidator.OS;
 
-public class CodeWorker implements FileVisitor<Path> {
-    private static CodeWorker codeWorker;
+public class CodeChecker implements FileVisitor<Path> {
+    private static CodeChecker codeChecker;
+    private final FileWorker fw = new FileWorker();
+    private final OS os = new OSValidator().getEnv();
     private List<FileData> fileList = new ArrayList<FileData>();
     private List<CheckBox> extensions = Arrays.asList(new CheckBox(".java"), new CheckBox(".xml"), new CheckBox(".sql"),
             new CheckBox(".html"), new CheckBox(".c"), new CheckBox(".cpp"), new CheckBox(".php"), new CheckBox(".py"));
-    private final String tabReplacer = "    ";
-    private final char tab = '\t';
     private Path path;
-    private File selectedDirectory = null;
+    private File selectedDirectory;
     private int fileCounter;
     private long lineCounter;
     private boolean hasTabsInList;
@@ -93,8 +84,8 @@ public class CodeWorker implements FileVisitor<Path> {
     private Label filesToCheckLabel = new Label();
     private Button sourceFolderButton = new Button();
     private Button fixAllButton = new Button();
-    private Locale locale;
-    private ResourceBundle messages;
+    private Locale locale = new Locale("en", "US");
+    private ResourceBundle messages = ResourceBundle.getBundle("properties/messages", locale);
     private String contentTypeString;
     private String modificationTimeString;
     private String ownerString;
@@ -114,16 +105,14 @@ public class CodeWorker implements FileVisitor<Path> {
     private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")");
     private Map<String, Long> linesCache = new HashMap<String, Long>();
 
-    private CodeWorker() {
-        locale = new Locale("en", "US");
-        messages = ResourceBundle.getBundle("properties/messages", locale);
+    private CodeChecker() {
     }
 
-    protected static CodeWorker getInstance() {
-        if (codeWorker == null) {
-            codeWorker = new CodeWorker();
+    protected static CodeChecker getInstance() {
+        if (codeChecker == null) {
+            codeChecker = new CodeChecker();
         }
-        return codeWorker;
+        return codeChecker;
     }
 
     private void handleException(Exception e) {
@@ -133,81 +122,6 @@ public class CodeWorker implements FileVisitor<Path> {
         alert.setHeaderText(messages.getString("excMessage"));
         alert.setContentText(e.getMessage());
         alert.showAndWait();
-    }
-
-    private String getFileType(File f) {
-        try {
-            return new Tika().detect(f);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private String getFileTime(File f) {
-        try {
-            FileTime time = Files.getLastModifiedTime(Paths.get(f.getAbsolutePath()), LinkOption.NOFOLLOW_LINKS);
-            Instant acsessTime = time.toInstant();
-            ZonedDateTime t = acsessTime.atZone(ZoneId.of("UTC"));
-            return DateTimeFormatter.ofPattern("dd/MM/yyyy kk:mm:ss").format(t);
-        } catch (IOException e) {
-            handleException(e);
-        }
-        return "";
-    }
-
-    private String getPermissions(Set<PosixFilePermission> perm) {
-        String s = "-";
-
-        if (perm.contains(PosixFilePermission.OWNER_READ)) {
-            s += "r";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.OWNER_WRITE)) {
-            s += "w";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.OWNER_EXECUTE)) {
-            s += "x";
-        } else {
-            s += "-";
-        }
-        s += "/";
-        if (perm.contains(PosixFilePermission.GROUP_READ)) {
-            s += "r";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.GROUP_WRITE)) {
-            s += "w";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.GROUP_EXECUTE)) {
-            s += "x";
-        } else {
-            s += "-";
-        }
-        s += "/";
-
-        if (perm.contains(PosixFilePermission.OTHERS_READ)) {
-            s += "r";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.OTHERS_WRITE)) {
-            s += "w";
-        } else {
-            s += "-";
-        }
-        if (perm.contains(PosixFilePermission.OTHERS_EXECUTE)) {
-            s += "x";
-        } else {
-            s += "-";
-        }
-        return s;
     }
 
     private String getToolTipText(String filename) {
@@ -221,13 +135,12 @@ public class CodeWorker implements FileVisitor<Path> {
             permissionsString = messages.getString("permissions");
             sizeString = messages.getString("size");
 
-            result += contentTypeString + " " + getFileType(f) + System.lineSeparator();
-            result += modificationTimeString + " " + getFileTime(f) + System.lineSeparator();
-            OSValidator os = new OSValidator();
-            if ((os.getEnv() == OS.MAC) || (os.getEnv() == OS.UNIX) || (os.getEnv() == OS.SOLARIS)) {
+            result += contentTypeString + " " + fw.getFileType(f) + System.lineSeparator();
+            result += modificationTimeString + " " + fw.getFileTime(f) + System.lineSeparator();
+            if ((os == OS.MAC) || (os == OS.UNIX) || (os == OS.SOLARIS)) {
                 result += ownerString + " " + Files.getOwner(path, LinkOption.NOFOLLOW_LINKS) + System.lineSeparator();
                 result += permissionsString + " "
-                        + getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))
+                        + fw.getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))
                         + System.lineSeparator();
             }
             result += "------" + System.lineSeparator();
@@ -247,7 +160,11 @@ public class CodeWorker implements FileVisitor<Path> {
             final MenuItem mi1 = new MenuItem(messages.getString("mi1"));
             mi1.setOnAction(event -> {
                 if (row.getItem().isTab()) {
-                    fixTabs(Paths.get(row.getItem().getFileName()));
+                    try {
+                        fw.fixTabs(Paths.get(row.getItem().getFileName()));
+                    } catch (IOException e) {
+                        handleException(e);
+                    }
                     updateView();
                 }
             });
@@ -421,14 +338,17 @@ public class CodeWorker implements FileVisitor<Path> {
         }
 
         view.setCenter(new StackPane(new VirtualizedScrollPane<CodeArea>(textArea)));
-        bottomPane.getChildren().add(new Label(modificationTimeString + " " + getFileTime(file.toFile())));
-        OSValidator os = new OSValidator();
-        if ((os.getEnv() == OS.MAC) || (os.getEnv() == OS.UNIX) || (os.getEnv() == OS.SOLARIS)) {
+        try {
+            bottomPane.getChildren().add(new Label(modificationTimeString + " " + fw.getFileTime(file.toFile())));
+        } catch (IOException e) {
+            handleException(e);
+        }
+        if ((os == OS.MAC) || (os == OS.UNIX) || (os == OS.SOLARIS)) {
             try {
                 bottomPane.getChildren()
                         .add(new Label(ownerString + " " + Files.getOwner(path, LinkOption.NOFOLLOW_LINKS)));
                 bottomPane.getChildren().add(new Label(permissionsString + " "
-                        + getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))));
+                        + fw.getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))));
             } catch (IOException e) {
                 handleException(e);
             }
@@ -436,8 +356,12 @@ public class CodeWorker implements FileVisitor<Path> {
         bottomPane.getChildren().add(new Label(sizeString + " " + file.toFile().length()));
         bottomPane.getChildren().forEach(node -> FlowPane.setMargin(node, new Insets(10)));
         view.setBottom(bottomPane);
-        stage.setTitle(file.getFileName().toString() + "  |  " + getFileType(file.toFile()) + "  |  "
-                + messages.getString("linesSmall") + ": " + linesCache.get(file.toString()));
+        try {
+            stage.setTitle(file.getFileName().toString() + "  |  " + fw.getFileType(file.toFile()) + "  |  "
+                    + messages.getString("linesSmall") + ": " + linesCache.get(file.toString()));
+        } catch (IOException e) {
+            handleException(e);
+        }
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/img/code.png")));
         stage.setScene(new Scene(view, viewW, viewH));
         stage.show();
@@ -458,11 +382,8 @@ public class CodeWorker implements FileVisitor<Path> {
             fixAllButton.setText(messages.getString("fixAll"));
             filesToCheckLabel.setText(messages.getString("files"));
 
-            if (selectedDirectory != null) {
-                primaryStage.setTitle(messages.getString("title") + ": " + selectedDirectory);
-            } else {
-                primaryStage.setTitle(messages.getString("title"));
-            }
+            primaryStage.setTitle(selectedDirectory == null ? messages.getString("title")
+                    : messages.getString("title") + ": " + selectedDirectory);
             updateView();
         });
 
@@ -474,7 +395,8 @@ public class CodeWorker implements FileVisitor<Path> {
         sourceFolderButton.setText(messages.getString("sources"));
         sourceFolderButton.setOnAction(event -> {
             selectedDirectory = directoryChooser.showDialog(primaryStage);
-            primaryStage.setTitle(messages.getString("title") + ": " + selectedDirectory);
+            primaryStage.setTitle(selectedDirectory == null ? messages.getString("title")
+                    : messages.getString("title") + ": " + selectedDirectory);
             updateView();
         });
         fixAllButton.setText(messages.getString("fixAll"));
@@ -515,58 +437,6 @@ public class CodeWorker implements FileVisitor<Path> {
         }
     }
 
-    private long countLines(Path file) {
-        long lines = 0;
-        try {
-            lines = Files.lines(file).count();
-        } catch (IOException e) {
-            handleException(e);
-        }
-        return lines;
-    }
-
-    private boolean hasTabs(Path file) {
-        try (InputStream in = new FileInputStream(file.toFile());
-                Reader reader = new InputStreamReader(in);
-                BufferedReader buffer = new BufferedReader(reader)) {
-            int r;
-            while ((r = buffer.read()) != -1) {
-                if ((char) r == '\t') {
-                    buffer.close();
-                    return true;
-                }
-            }
-        } catch (FileNotFoundException e) {
-            handleException(e);
-        } catch (IOException e) {
-            handleException(e);
-        }
-        return false;
-    }
-
-    private void fixTabs(Path file) {
-        try {
-            Path oldFile = Files.move(file, Paths.get(file.toString() + ".old"), StandardCopyOption.REPLACE_EXISTING);
-            try (BufferedReader readBuffer = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(oldFile.toFile())));
-                    BufferedWriter writeBuffer = new BufferedWriter(
-                            new OutputStreamWriter(new FileOutputStream(file.toFile())))) {
-                int r;
-                while ((r = readBuffer.read()) != -1) {
-                    if ((char) r == tab) {
-                        writeBuffer.write(tabReplacer);
-                    } else {
-                        writeBuffer.write(r);
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                handleException(e);
-            }
-        } catch (IOException e) {
-            handleException(e);
-        }
-    }
-
     private boolean matchExtension(String fileName) {
         for (CheckBox extension : extensions) {
             if (extension.isSelected() && fileName.toLowerCase().endsWith(extension.getText())) {
@@ -580,16 +450,16 @@ public class CodeWorker implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         if (matchExtension(file.getFileName().toString())) {
             FileData tableItem = new FileData();
-            tableItem.setTab(hasTabs(file));
+            tableItem.setTab(fw.hasTabs(file));
             tableItem.setFileName(file.toFile().getCanonicalPath());
-            tableItem.setLines(countLines(file));
+            tableItem.setLines(fw.countLines(file));
             if (tableItem.isTab()) {
                 hasTabsInList = true;
                 linesCache.put(tableItem.getFileName(), tableItem.getLines()); // fill cache for better speed
             }
             fileList.add(tableItem);
             fileCounter++;
-            lineCounter += countLines(file);
+            lineCounter += fw.countLines(file);
         }
         return FileVisitResult.CONTINUE;
     }
