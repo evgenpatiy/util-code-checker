@@ -69,9 +69,9 @@ public class CodeChecker implements FileVisitor<Path> {
     private final FileWorker fw = new FileWorker();
     private final OS os = new OSValidator().getEnv();
     private List<FileData> fileList = new ArrayList<FileData>();
-    private List<CheckBox> extensions = Arrays.asList(new CheckBox(".java"), new CheckBox(".xml"), new CheckBox(".sql"),
-            new CheckBox(".html"), new CheckBox(".c"), new CheckBox(".cpp"), new CheckBox(".php"), new CheckBox(".py"));
-    private Path path;
+    private final List<CheckBox> extensions = Arrays.asList(new CheckBox(".java"), new CheckBox(".xml"),
+            new CheckBox(".sql"), new CheckBox(".html"), new CheckBox(".c"), new CheckBox(".cpp"), new CheckBox(".php"),
+            new CheckBox(".py"));
     private File selectedDirectory;
     private int fileCounter;
     private long lineCounter;
@@ -125,9 +125,8 @@ public class CodeChecker implements FileVisitor<Path> {
     }
 
     private String getToolTipText(String filename) {
-        File f = new File(filename);
-        Path path = Paths.get(f.getAbsolutePath());
-        String result = f.getName() + System.lineSeparator() + "------" + System.lineSeparator();
+        File file = new File(filename);
+        String result = file.getName() + System.lineSeparator() + "------" + System.lineSeparator();
         try {
             contentTypeString = messages.getString("contentType");
             modificationTimeString = messages.getString("modificationTime");
@@ -135,16 +134,18 @@ public class CodeChecker implements FileVisitor<Path> {
             permissionsString = messages.getString("permissions");
             sizeString = messages.getString("size");
 
-            result += contentTypeString + " " + fw.getFileType(f) + System.lineSeparator();
-            result += modificationTimeString + " " + fw.getFileTime(f) + System.lineSeparator();
+            result += contentTypeString + " " + fw.getFileType(file) + System.lineSeparator();
+            result += modificationTimeString + " " + fw.getFileTime(file) + System.lineSeparator();
             if ((os == OS.MAC) || (os == OS.UNIX) || (os == OS.SOLARIS)) {
-                result += ownerString + " " + Files.getOwner(path, LinkOption.NOFOLLOW_LINKS) + System.lineSeparator();
+                Path currentFilePath = Paths.get(file.getAbsolutePath());
+                result += ownerString + " " + Files.getOwner(currentFilePath, LinkOption.NOFOLLOW_LINKS)
+                        + System.lineSeparator();
                 result += permissionsString + " "
-                        + fw.getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))
+                        + fw.getPermissions(Files.getPosixFilePermissions(currentFilePath, LinkOption.NOFOLLOW_LINKS))
                         + System.lineSeparator();
             }
             result += "------" + System.lineSeparator();
-            result += sizeString + " " + f.length();
+            result += sizeString + " " + file.length();
         } catch (IOException e) {
             handleException(e);
         }
@@ -346,9 +347,9 @@ public class CodeChecker implements FileVisitor<Path> {
         if ((os == OS.MAC) || (os == OS.UNIX) || (os == OS.SOLARIS)) {
             try {
                 bottomPane.getChildren()
-                        .add(new Label(ownerString + " " + Files.getOwner(path, LinkOption.NOFOLLOW_LINKS)));
+                        .add(new Label(ownerString + " " + Files.getOwner(file, LinkOption.NOFOLLOW_LINKS)));
                 bottomPane.getChildren().add(new Label(permissionsString + " "
-                        + fw.getPermissions(Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS))));
+                        + fw.getPermissions(Files.getPosixFilePermissions(file, LinkOption.NOFOLLOW_LINKS))));
             } catch (IOException e) {
                 handleException(e);
             }
@@ -425,10 +426,9 @@ public class CodeChecker implements FileVisitor<Path> {
     }
 
     private void processDirectory(File dir) {
-        path = Paths.get(dir.getAbsolutePath());
         hasTabsInList = false;
         try {
-            Files.walkFileTree(path, this);
+            Files.walkFileTree(Paths.get(dir.getAbsolutePath()), this);
         } catch (IOException e) {
             handleException(e);
         }

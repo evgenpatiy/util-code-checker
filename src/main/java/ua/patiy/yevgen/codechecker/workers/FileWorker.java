@@ -30,12 +30,12 @@ public class FileWorker {
     private final String tabReplacer = "    ";
     private final char tab = '\t';
 
-    public String getFileType(File f) throws IOException {
-        return new Tika().detect(f);
+    public String getFileType(File file) throws IOException {
+        return new Tika().detect(file);
     }
 
-    public String getFileTime(File f) throws IOException {
-        FileTime time = Files.getLastModifiedTime(Paths.get(f.getAbsolutePath()), LinkOption.NOFOLLOW_LINKS);
+    public String getFileTime(File file) throws IOException {
+        FileTime time = Files.getLastModifiedTime(Paths.get(file.getAbsolutePath()), LinkOption.NOFOLLOW_LINKS);
         Instant acsessTime = time.toInstant();
         ZonedDateTime t = acsessTime.atZone(ZoneId.of("UTC"));
         return DateTimeFormatter.ofPattern("dd/MM/yyyy kk:mm:ss").format(t);
