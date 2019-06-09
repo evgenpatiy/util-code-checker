@@ -381,9 +381,7 @@ public class CodeChecker implements FileVisitor<Path> {
             sourceFolderButton.setText(messages.getString("sources"));
             fixAllButton.setText(messages.getString("fixAll"));
             filesToCheckLabel.setText(messages.getString("files"));
-
-            primaryStage.setTitle(selectedDirectory == null ? messages.getString("title")
-                    : messages.getString("title") + ": " + selectedDirectory);
+            primaryStage.setTitle(messages.getString("title"));
             updateView();
         });
 
@@ -391,11 +389,10 @@ public class CodeChecker implements FileVisitor<Path> {
         FlowPane bottomPane = new FlowPane();
         bottomPane.setId("bottomPane");
         Scene scene = new Scene(root, mainW, mainH);
-        DirectoryChooser directoryChooser = new DirectoryChooser();
         sourceFolderButton.setText(messages.getString("sources"));
         sourceFolderButton.setOnAction(event -> {
-            selectedDirectory = directoryChooser.showDialog(primaryStage);
-            primaryStage.setTitle(selectedDirectory == null ? messages.getString("title")
+            selectedDirectory = (new DirectoryChooser()).showDialog(primaryStage);
+            primaryStage.setTitle(selectedDirectory == null ? primaryStage.getTitle()
                     : messages.getString("title") + ": " + selectedDirectory);
             updateView();
         });
