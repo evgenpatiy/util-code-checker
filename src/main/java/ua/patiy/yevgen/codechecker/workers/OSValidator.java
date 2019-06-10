@@ -8,21 +8,21 @@ public class OSValidator {
     }
 
     @Getter
-    private OS env;
+    private OS os;
 
     public OSValidator() {
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("win")) {
-            env = OS.WINDOWS;
+            os = OS.WINDOWS;
         } else if (osName.contains("mac")) {
-            env = OS.MAC;
+            os = OS.MAC;
         } else if (osName.contains("nix") || osName.contains("nux") || osName.contains("bsd") || osName.contains("irix")
                 || osName.contains("aix") || osName.contains("hp-ux")) {
-            env = OS.UNIX;
+            os = OS.UNIX;
         } else if (osName.contains("sunos") || osName.contains("solaris")) {
-            env = OS.SOLARIS;
+            os = OS.SOLARIS;
         } else {
-            env = null;
+            os = null;
             System.out.printf("%s%n", "Your operating system not supported, exiting...");
             System.exit(1);
         }

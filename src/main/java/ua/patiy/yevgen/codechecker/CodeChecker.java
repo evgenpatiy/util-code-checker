@@ -67,7 +67,7 @@ import ua.patiy.yevgen.codechecker.workers.OSValidator.OS;
 public class CodeChecker implements FileVisitor<Path> {
     private static CodeChecker codeChecker;
     private final FileWorker fw = new FileWorker();
-    private final OS os = new OSValidator().getEnv();
+    private final OS os = new OSValidator().getOs();
     private List<FileData> fileList = new ArrayList<FileData>();
     private final List<CheckBox> extensions = Arrays.asList(new CheckBox(".java"), new CheckBox(".xml"),
             new CheckBox(".sql"), new CheckBox(".html"), new CheckBox(".c"), new CheckBox(".cpp"), new CheckBox(".php"),
