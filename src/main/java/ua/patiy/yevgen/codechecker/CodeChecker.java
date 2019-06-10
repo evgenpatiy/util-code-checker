@@ -95,14 +95,14 @@ public class CodeChecker implements FileVisitor<Path> {
     private final int mainH = 600;
     private final int viewW = 800;
     private final int viewH = 600;
-    private static final String[] KEYWORDS = new String[] { "abstract", "assert", "boolean", "break", "byte", "case",
+    private static final String[] HIGHLIGHT = new String[] { "abstract", "assert", "boolean", "break", "byte", "case",
             "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends",
             "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
             "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
             "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void",
             "volatile", "while", String.valueOf('\u0020'), String.valueOf('\u0009') };
-    private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
-    private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")");
+    private static final String HIGHLIGHT_PATTERN = "\\b(" + String.join("|", HIGHLIGHT) + ")\\b";
+    private static final Pattern PATTERN = Pattern.compile("(?<HIGHLIGHT>" + HIGHLIGHT_PATTERN + ")");
     private Map<String, Long> linesCache = new HashMap<String, Long>();
 
     private CodeChecker() {
@@ -300,7 +300,7 @@ public class CodeChecker implements FileVisitor<Path> {
         int lastKwEnd = 0;
         StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
         while (matcher.find()) {
-            String styleClass = matcher.group("KEYWORD") != null ? "keyword" : null;
+            String styleClass = matcher.group("HIGHLIGHT") != null ? "highlight" : null;
             assert styleClass != null;
             spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
             spansBuilder.add(Collections.singleton(styleClass), matcher.end() - matcher.start());

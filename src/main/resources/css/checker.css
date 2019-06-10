@@ -30,7 +30,7 @@
     -fx-fill: white;
     -fx-background-color: blue; 
 }
-.keyword {
+.highlight {
     -fx-fill: #8346F2;
     -fx-font-weight: bold;
 }
