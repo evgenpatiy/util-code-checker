@@ -22,6 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -273,16 +276,28 @@ public class CodeChecker implements FileVisitor<Path> {
             if (hasTabsInList) {
                 fixAllButton.setGraphic(new ImageView(new Image(getClass().getResourceAsStream("/img/warning.png"))));
                 fixAllButton.setOnAction(event -> {
-                    fileList.stream().filter(f -> f.isTab()).forEach(f -> {
-                        try {
-                            fw.fixTabs(Paths.get(f.getFileName()));
-                        } catch (IOException e) {
-                            handleException(e);
-                        }
+                    // long start = System.nanoTime();
+                    // multi-thread operations
+                    ExecutorService threadPool = Executors
+                            .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+
+                    fileList.stream().filter(file -> file.isTab()).forEach(file -> {
+                        CompletableFuture.runAsync(() -> {
+                            try {
+                                fw.fixTabs(Paths.get(file.getFileName()));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                System.out.printf("%s%n", "Fix failed on " + file.getFileName());
+                            }
+                        }, threadPool);
                     });
+
+                    // System.out.println((System.nanoTime() - start));
                     updateView();
                 });
-                if (!topPane.getChildren().contains(fixAllButton)) {
+                if (!topPane.getChildren().contains(fixAllButton))
+
+                {
                     topPane.getChildren().add(fixAllButton);
                 }
             } else {
