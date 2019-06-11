@@ -19,10 +19,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -95,15 +93,17 @@ public class CodeChecker implements FileVisitor<Path> {
     private final int mainH = 600;
     private final int viewW = 800;
     private final int viewH = 600;
-    private static final String[] HIGHLIGHT = new String[] { "abstract", "assert", "boolean", "break", "byte", "case",
+    private static final String[] KEYWORD = new String[] { "abstract", "assert", "boolean", "break", "byte", "case",
             "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends",
             "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
             "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
             "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void",
-            "volatile", "while", String.valueOf('\u0020'), String.valueOf('\u0009') };
-    private static final String HIGHLIGHT_PATTERN = "\\b(" + String.join("|", HIGHLIGHT) + ")\\b";
-    private static final Pattern PATTERN = Pattern.compile("(?<HIGHLIGHT>" + HIGHLIGHT_PATTERN + ")");
-    private Map<String, Long> linesCache = new HashMap<String, Long>();
+            "volatile", "while" };
+    private static final String[] HIGHLIGHT = new String[] { String.valueOf('\u0009') };
+    private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORD) + ")\\b";
+    private static final String HIGHLIGHT_PATTERN = "(" + String.join("|", HIGHLIGHT) + ")\\b";
+    private static final Pattern PATTERN = Pattern
+            .compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")" + "|(?<HIGHLIGHT>" + HIGHLIGHT_PATTERN + ")");
 
     private CodeChecker() {
     }
@@ -172,21 +172,29 @@ public class CodeChecker implements FileVisitor<Path> {
 
             final MenuItem mi2 = new MenuItem(messages.getString("mi2"));
             mi2.setOnAction(event -> {
-                if (row.getItem().isTab()) {
-                    setViewFileWindow(Paths.get(row.getItem().getFileName()));
-                }
+                setViewFileWindow(row.getItem());
             });
-            final ContextMenu menu = new ContextMenu();
-            menu.getItems().add(mi1);
-            menu.getItems().add(mi2);
 
-            // show context menu only for proper rows
+            final MenuItem mi3 = new MenuItem(messages.getString("mi2"));
+            mi3.setOnAction(event -> {
+                setViewFileWindow(row.getItem());
+            });
+
+            final ContextMenu menuWhenTabs = new ContextMenu();
+            menuWhenTabs.getItems().add(mi1);
+            menuWhenTabs.getItems().add(mi2);
+            final ContextMenu menuWhenNoTabs = new ContextMenu();
+            menuWhenNoTabs.getItems().add(mi3);
+
+            // show proper context menu for proper rows
             row.emptyProperty().addListener((observable, wasEmpty, isEmpty) -> {
                 if (isEmpty) {
                     row.setContextMenu(null);
                 } else {
                     if (row.getItem().isTab()) {
-                        row.setContextMenu(menu);
+                        row.setContextMenu(menuWhenTabs);
+                    } else {
+                        row.setContextMenu(menuWhenNoTabs);
                     }
                 }
             });
@@ -267,7 +275,6 @@ public class CodeChecker implements FileVisitor<Path> {
 
     private void updateView() {
         if (selectedDirectory != null) {
-            linesCache.clear();
             fileCounter = 0;
             lineCounter = 0;
             if (!fileList.isEmpty()) {
@@ -278,9 +285,6 @@ public class CodeChecker implements FileVisitor<Path> {
             if (hasTabsInList) {
                 fixAllButton.setGraphic(new ImageView(new Image(getClass().getResourceAsStream("/img/warning.png"))));
                 fixAllButton.setOnAction(event -> {
-                    linesCache.forEach((k, v) -> {
-                        System.out.println(k);
-                    });
                 });
                 if (!topPane.getChildren().contains(fixAllButton)) {
                     topPane.getChildren().add(fixAllButton);
@@ -300,7 +304,8 @@ public class CodeChecker implements FileVisitor<Path> {
         int lastKwEnd = 0;
         StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
         while (matcher.find()) {
-            String styleClass = matcher.group("HIGHLIGHT") != null ? "highlight" : null;
+            String styleClass = matcher.group("KEYWORD") != null ? "keyword"
+                    : matcher.group("HIGHLIGHT") != null ? "highlight" : null;
             assert styleClass != null;
             spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
             spansBuilder.add(Collections.singleton(styleClass), matcher.end() - matcher.start());
@@ -310,7 +315,8 @@ public class CodeChecker implements FileVisitor<Path> {
         return spansBuilder.create();
     }
 
-    private void setViewFileWindow(Path file) {
+    private void setViewFileWindow(FileData fileData) {
+        Path file = Paths.get(fileData.getFileName());
         Stage stage = new Stage();
         CodeArea textArea = new CodeArea();
         FlowPane bottomPane = new FlowPane();
@@ -359,7 +365,7 @@ public class CodeChecker implements FileVisitor<Path> {
         view.setBottom(bottomPane);
         try {
             stage.setTitle(file.getFileName().toString() + "  |  " + fw.getFileType(file.toFile()) + "  |  "
-                    + messages.getString("linesSmall") + ": " + linesCache.get(file.toString()));
+                    + messages.getString("linesSmall") + ": " + fileData.getLines());
         } catch (IOException e) {
             handleException(e);
         }
@@ -452,7 +458,6 @@ public class CodeChecker implements FileVisitor<Path> {
             tableItem.setLines(fw.countLines(file));
             if (tableItem.isTab()) {
                 hasTabsInList = true;
-                linesCache.put(tableItem.getFileName(), tableItem.getLines()); // fill cache for better speed
             }
             fileList.add(tableItem);
             fileCounter++;

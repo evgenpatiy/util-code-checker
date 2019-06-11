@@ -31,6 +31,9 @@
     -fx-background-color: blue; 
 }
 .highlight {
+    -rtfx-background-color: red;
+}
+.keyword {
     -fx-fill: #8346F2;
     -fx-font-weight: bold;
 }
