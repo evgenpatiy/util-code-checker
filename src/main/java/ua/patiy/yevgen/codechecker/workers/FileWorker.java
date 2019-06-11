@@ -28,7 +28,7 @@ import org.apache.tika.Tika;
 
 public class FileWorker {
     private final String tabReplacer = "    ";
-    private final char tab = '\t';
+    private final char tab = '\u0009';
 
     public String getFileType(File file) throws IOException {
         return new Tika().detect(file);

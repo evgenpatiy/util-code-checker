@@ -44,6 +44,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -170,47 +171,37 @@ public class CodeChecker implements FileVisitor<Path> {
                 }
             });
 
-            final MenuItem mi2 = new MenuItem(messages.getString("mi2"));
+            final MenuItem mi2 = new MenuItem();
             mi2.setOnAction(event -> {
                 setViewFileWindow(row.getItem());
             });
 
-            final MenuItem mi3 = new MenuItem(messages.getString("mi2"));
-            mi3.setOnAction(event -> {
-                setViewFileWindow(row.getItem());
+            final ContextMenu contextMenu = new ContextMenu();
+            contextMenu.getItems().add(mi1);
+            contextMenu.getItems().add(mi2);
+
+            row.setOnContextMenuRequested(event -> {
+                if (!row.isEmpty()) {
+                    mi2.setText(messages.getString("mi2") + " " + Paths.get(row.getItem().getFileName()).getFileName());
+                }
             });
-
-            final ContextMenu menuWhenTabs = new ContextMenu();
-            menuWhenTabs.getItems().add(mi1);
-            menuWhenTabs.getItems().add(mi2);
-            final ContextMenu menuWhenNoTabs = new ContextMenu();
-            menuWhenNoTabs.getItems().add(mi3);
-
             // show proper context menu for proper rows
             row.emptyProperty().addListener((observable, wasEmpty, isEmpty) -> {
                 if (isEmpty) {
                     row.setContextMenu(null);
                 } else {
-                    if (row.getItem().isTab()) {
-                        row.setContextMenu(menuWhenTabs);
-                    } else {
-                        row.setContextMenu(menuWhenNoTabs);
-                    }
+                    mi1.setVisible(row.getItem().isTab() ? true : false);
+                    row.setContextMenu(contextMenu);
                 }
             });
-            row.hoverProperty().addListener((observable) -> {
+
+            row.hoverProperty().addListener(observable -> {
                 final FileData line = row.getItem();
-                Tooltip tt = new Tooltip();
                 if (line != null) {
-                    tt.setText(getToolTipText(line.getFileName()));
-                    row.setTooltip(tt);
+                    row.setTooltip(new Tooltip(getToolTipText(line.getFileName())));
                 }
                 if (row.isHover() && line != null) {
-                    if (line.isTab()) {
-                        row.setId("rowTabTrue");
-                    } else {
-                        row.setId("rowTabFalse");
-                    }
+                    row.setId(line.isTab() ? "rowTabTrue" : "rowTabFalse");
                 } else {
                     row.setId("rowDefault");
                 }
@@ -228,11 +219,7 @@ public class CodeChecker implements FileVisitor<Path> {
                     setText(null);
                 } else {
                     setText(item ? messages.getString("yes") : messages.getString("no"));
-                    if (item) {
-                        setId("tabTrue");
-                    } else {
-                        setId("tabFalse");
-                    }
+                    setId(item ? "tabTrue" : "tabFalse");
                 }
             }
         });
@@ -269,6 +256,7 @@ public class CodeChecker implements FileVisitor<Path> {
         linesCol.setResizable(false);
         tableView.setItems(dataView);
         tableView.setPlaceholder(new Label(messages.getString("noFiles")));
+        tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         return tableView;
     }
@@ -285,6 +273,14 @@ public class CodeChecker implements FileVisitor<Path> {
             if (hasTabsInList) {
                 fixAllButton.setGraphic(new ImageView(new Image(getClass().getResourceAsStream("/img/warning.png"))));
                 fixAllButton.setOnAction(event -> {
+                    fileList.stream().filter(f -> f.isTab()).forEach(f -> {
+                        try {
+                            fw.fixTabs(Paths.get(f.getFileName()));
+                        } catch (IOException e) {
+                            handleException(e);
+                        }
+                    });
+                    updateView();
                 });
                 if (!topPane.getChildren().contains(fixAllButton)) {
                     topPane.getChildren().add(fixAllButton);
@@ -404,6 +400,7 @@ public class CodeChecker implements FileVisitor<Path> {
             updateView();
         });
         fixAllButton.setText(messages.getString("fixAll"));
+
         bottomPane.setAlignment(Pos.CENTER);
         filesToCheckLabel.setText(messages.getString("files"));
         bottomPane.getChildren().add(filesToCheckLabel);
