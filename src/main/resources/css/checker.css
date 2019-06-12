@@ -37,6 +37,15 @@
     -fx-fill: #8346F2;
     -fx-font-weight: bold;
 }
+.progress-bar {
+    -fx-background-color: yellow;
+}
+.progress-bar .track{
+    -fx-background-color: red;
+}
+.progress-bar .bar { 
+    -fx-background-color: #90EE90;
+}
 #mainWindow {
     -fx-background-color: white;
     -fx-background-image: url("/img/java.png");

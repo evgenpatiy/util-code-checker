@@ -60,6 +60,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -83,6 +84,7 @@ public class CodeChecker implements FileVisitor<Path> {
     private ObservableList<FileData> dataView;
     private BorderPane root = new BorderPane();
     private FlowPane topPane = new FlowPane();
+    private HBox driveSpaceBox = new HBox();
     private Label filesLabel = new Label();
     private Label linesLabel = new Label();
     private Label filesToCheckLabel = new Label();
@@ -270,17 +272,25 @@ public class CodeChecker implements FileVisitor<Path> {
     private void updateView() {
         if (selectedDirectory != null) {
             Path driveLetter = selectedDirectory.toPath().getRoot();
-            driveLabel.setText(driveLetter.toString() + ": ");
+            driveLabel.setText(driveLetter.toString() + "  ");
 
             double freeSpace = driveLetter.toFile().getFreeSpace();
             double totalSpace = driveLetter.toFile().getTotalSpace();
-            ProgressBar pb = new ProgressBar(freeSpace / totalSpace);
-            pb.setTooltip(new Tooltip("Free space: " + Math.round(100 * freeSpace / totalSpace) + "%"));
-
-            if (!topPane.getChildren().contains(pb)) {
-                topPane.getChildren().add(0, driveLabel);
-                topPane.getChildren().add(1, pb);
+            ProgressBar progressBar = new ProgressBar(freeSpace / totalSpace);
+            progressBar.setTooltip(new Tooltip(messages.getString("freeSpace") + "  " + driveLetter.toString() + " - "
+                    + Math.round(100 * freeSpace / totalSpace) + "%"));
+            driveSpaceBox.setAlignment(Pos.CENTER);
+            if (!driveSpaceBox.getChildren().isEmpty()) {
+                driveSpaceBox.getChildren().clear();
             }
+            driveSpaceBox.getChildren().addAll(driveLabel, progressBar);
+
+            if (!topPane.getChildren().contains(driveSpaceBox)) {
+                topPane.getChildren().add(0, driveSpaceBox);
+                // topPane.getChildren().forEach(node -> FlowPane.setMargin(node, new
+                // Insets(20)));
+            }
+
             fileCounter = 0;
             lineCounter = 0;
             if (!fileList.isEmpty()) {
@@ -316,9 +326,7 @@ public class CodeChecker implements FileVisitor<Path> {
                     });
                     updateView();
                 });
-                if (!topPane.getChildren().contains(fixAllButton))
-
-                {
+                if (!topPane.getChildren().contains(fixAllButton)) {
                     topPane.getChildren().add(fixAllButton);
                 }
             } else {
