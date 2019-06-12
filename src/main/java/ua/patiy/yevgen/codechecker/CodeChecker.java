@@ -350,7 +350,7 @@ public class CodeChecker implements FileVisitor<Path> {
             textArea.setStyleSpans(0, highlight(newText));
         });
         try (InputStream in = new FileInputStream(file.toFile());
-                Reader reader = new InputStreamReader(in);
+                Reader reader = new InputStreamReader(in, "UTF-8");
                 BufferedReader buffer = new BufferedReader(reader)) {
             String line;
             while ((line = buffer.readLine()) != null) {
