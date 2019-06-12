@@ -48,6 +48,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -85,6 +86,7 @@ public class CodeChecker implements FileVisitor<Path> {
     private Label filesLabel = new Label();
     private Label linesLabel = new Label();
     private Label filesToCheckLabel = new Label();
+    private Label driveLabel = new Label();
     private Button sourceFolderButton = new Button();
     private Button fixAllButton = new Button();
     private Locale locale = new Locale("en", "US");
@@ -267,6 +269,18 @@ public class CodeChecker implements FileVisitor<Path> {
 
     private void updateView() {
         if (selectedDirectory != null) {
+            Path driveLetter = selectedDirectory.toPath().getRoot();
+            driveLabel.setText(driveLetter.toString() + ": ");
+
+            double freeSpace = driveLetter.toFile().getFreeSpace();
+            double totalSpace = driveLetter.toFile().getTotalSpace();
+            ProgressBar pb = new ProgressBar(freeSpace / totalSpace);
+            pb.setTooltip(new Tooltip("Free space: " + Math.round(100 * freeSpace / totalSpace) + "%"));
+
+            if (!topPane.getChildren().contains(pb)) {
+                topPane.getChildren().add(0, driveLabel);
+                topPane.getChildren().add(1, pb);
+            }
             fileCounter = 0;
             lineCounter = 0;
             if (!fileList.isEmpty()) {

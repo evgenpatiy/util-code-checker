@@ -11,6 +11,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -18,17 +20,50 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.tika.Tika;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class FileWorker {
+    @Getter
+    @Setter
+    public class Space {
+        private long totalSpace;
+        private long availableSpace;
+    }
+
     private final String tabReplacer = "    ";
     private final char tab = '\u0009';
+
+    public Map<Path, Space> getSpace() {
+        Map<Path, Space> result = new LinkedHashMap<Path, Space>();
+        NumberFormat nf = NumberFormat.getNumberInstance();
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            System.out.print(root + ": ");
+            try {
+                Space space = new Space();
+                FileStore store = Files.getFileStore(root);
+                System.out.println("available=" + nf.format(store.getUsableSpace()) + ", total="
+                        + nf.format(store.getTotalSpace()));
+                space.setAvailableSpace(store.getUsableSpace());
+                space.setTotalSpace(store.getTotalSpace());
+                result.put(root, space);
+            } catch (IOException e) {
+                System.out.println("error querying space: " + e.toString());
+            }
+        }
+        return result;
+    }
 
     public String getFileType(File file) throws IOException {
         return new Tika().detect(file);
