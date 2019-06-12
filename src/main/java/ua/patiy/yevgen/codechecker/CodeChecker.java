@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -276,23 +277,29 @@ public class CodeChecker implements FileVisitor<Path> {
             if (hasTabsInList) {
                 fixAllButton.setGraphic(new ImageView(new Image(getClass().getResourceAsStream("/img/warning.png"))));
                 fixAllButton.setOnAction(event -> {
-                    // long start = System.nanoTime();
-                    // multi-thread operations
+                    // multi-thread operations for speed
                     ExecutorService threadPool = Executors
                             .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+                    List<CompletableFuture<Void>> futures = new ArrayList<CompletableFuture<Void>>();
 
                     fileList.stream().filter(file -> file.isTab()).forEach(file -> {
-                        CompletableFuture.runAsync(() -> {
+                        futures.add(CompletableFuture.runAsync(() -> {
                             try {
                                 fw.fixTabs(Paths.get(file.getFileName()));
                             } catch (IOException e) {
                                 e.printStackTrace();
                                 System.out.printf("%s%n", "Fix failed on " + file.getFileName());
                             }
-                        }, threadPool);
+                        }, threadPool));
                     });
 
-                    // System.out.println((System.nanoTime() - start));
+                    futures.stream().forEach(future -> {
+                        try {
+                            future.get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            handleException(e);
+                        }
+                    });
                     updateView();
                 });
                 if (!topPane.getChildren().contains(fixAllButton))
