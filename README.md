@@ -14,7 +14,7 @@ Application tested under Linux and Windows. Existing [Java 8](https://www.java.c
 
 * Compile source code using command below. 
    
-`mvn compile assembly:single` 
+`mvn clean compile assembly:single` 
 
 * "target" directory will be created, find **CodeChecker-1.0-SNAPSHOT-jar-with-dependencies.jar** inside and run application as per below, or just double-click on it
 

@@ -287,8 +287,7 @@ public class CodeChecker implements FileVisitor<Path> {
 
             if (!topPane.getChildren().contains(driveSpaceBox)) {
                 topPane.getChildren().add(0, driveSpaceBox);
-                // topPane.getChildren().forEach(node -> FlowPane.setMargin(node, new
-                // Insets(20)));
+                topPane.getChildren().forEach(node -> FlowPane.setMargin(node, new Insets(20)));
             }
 
             fileCounter = 0;
