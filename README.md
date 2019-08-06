@@ -1,6 +1,6 @@
-# Check/fix code with tab characters and count lines you've produced
+# Check/fix code with tab characters and lines counter (made with Java 8 / JavaFX / multi-threading)
 
-Java-written application for simple code check (**TABS** issue) and lines count
+Java-written, speed-driven application for simple code check/fix (**TABS** issue) and lines count
 
 ## Environment requirements
 

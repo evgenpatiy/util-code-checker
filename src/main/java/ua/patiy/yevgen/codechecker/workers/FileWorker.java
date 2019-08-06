@@ -3,14 +3,10 @@ package ua.patiy.yevgen.codechecker.workers;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -95,39 +91,38 @@ public class FileWorker {
         return s;
     }
 
-    public long countLines(Path file) throws IOException {
-        return Files.lines(file).count();
+    public long countLines(Path path) throws IOException {
+        return Files.lines(path).count();
     }
 
-    public boolean hasTabs(Path file) throws FileNotFoundException, IOException {
-        try (InputStream in = new FileInputStream(file.toFile());
-                Reader reader = new InputStreamReader(in);
-                BufferedReader buffer = new BufferedReader(reader)) {
-            int r;
-            while ((r = buffer.read()) != -1) {
-                if ((char) r == '\t') {
-                    buffer.close();
-                    return true;
-                }
+    public String fileToString(Path path) throws FileNotFoundException, IOException { // fast file reader
+        String code = "";
+        try (BufferedReader reader = new BufferedReader(new FileReader(path.toString()))) {
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+                code += line + System.lineSeparator();
             }
         }
-        return false;
+        return code;
     }
 
-    public void fixTabs(Path file) throws IOException {
-        Path oldFile = Files.move(file, Paths.get(file.toString() + ".old"), StandardCopyOption.REPLACE_EXISTING);
-        try (BufferedReader readBuffer = new BufferedReader(
-                new InputStreamReader(new FileInputStream(oldFile.toFile())));
-                BufferedWriter writeBuffer = new BufferedWriter(
-                        new OutputStreamWriter(new FileOutputStream(file.toFile())))) {
-            int r;
-            while ((r = readBuffer.read()) != -1) {
-                if ((char) r == tab) {
-                    writeBuffer.write(tabReplacer);
-                } else {
-                    writeBuffer.write(r);
-                }
-            }
+    public void stringToFile(String code, Path path) throws IOException { // fast file writer
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path.toString(), false))) {
+            writer.write(code);
         }
+    }
+
+    public boolean hasTabs(Path path) throws FileNotFoundException, IOException {
+        return fileToString(path).contains(String.valueOf(tab));
+    }
+
+    public String replaceInCodeString(String code, String original, String target) {
+        return code.replaceAll(original, target);
+    }
+
+    public void fixTabs(Path path) throws IOException {
+        String fixedCode = replaceInCodeString(fileToString(path), String.valueOf(tab), tabReplacer);
+        Files.move(path, Paths.get(path.toString() + ".old"), StandardCopyOption.REPLACE_EXISTING); // backup original file
+        stringToFile(fixedCode, path);
     }
 }
